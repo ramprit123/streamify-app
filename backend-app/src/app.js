@@ -12,9 +12,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Routes
+import authRoutes from "./routes/authRoutes.js";
+
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Streamify API' });
 });
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 // Error Handling Middleware
 app.use(notFound);
