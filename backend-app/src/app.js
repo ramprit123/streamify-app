@@ -4,7 +4,6 @@ import cookieParser from 'cookie-parser';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 
 const app = express();
-
 // Middleware
 app.use(cors());
 app.use(express.json());
