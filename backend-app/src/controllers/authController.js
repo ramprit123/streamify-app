@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
+import { logSystemActivity } from "../utils/logger.js";
 
 // Generate Access Token
 const generateAccessToken = (id) => {
@@ -57,10 +58,24 @@ export const registerUser = async (req, res) => {
       await user.save();
 
       // Set cookies
-      res.cookie('accessToken', accessToken, cookieOptions);
-      res.cookie('refreshToken', refreshToken, {
+      res.cookie("accessToken", accessToken, cookieOptions);
+      res.cookie("refreshToken", refreshToken, {
         ...cookieOptions,
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      // Log the registration
+      await logSystemActivity({
+        user,
+        action: "REGISTER",
+        entityType: "User",
+        entityId: user._id,
+        currentState: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+        req,
       });
 
       res.status(201).json({
@@ -68,7 +83,7 @@ export const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar
+        avatar: user.avatar,
       });
     }
   } catch (error) {
@@ -89,16 +104,16 @@ export const loginUser = async (req, res) => {
 
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
       res.status(401);
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       res.status(401);
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     const accessToken = generateAccessToken(user._id);
@@ -109,10 +124,24 @@ export const loginUser = async (req, res) => {
     await user.save();
 
     // Set cookies
-    res.cookie('accessToken', accessToken, cookieOptions);
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie("accessToken", accessToken, cookieOptions);
+    res.cookie("refreshToken", refreshToken, {
       ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Log the login
+    await logSystemActivity({
+      user,
+      action: "LOGIN",
+      entityType: "User",
+      entityId: user._id,
+      currentState: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      req,
     });
 
     res.json({
@@ -120,7 +149,7 @@ export const loginUser = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      avatar: user.avatar
+      avatar: user.avatar,
     });
   } catch (error) {
     res.status(401);
