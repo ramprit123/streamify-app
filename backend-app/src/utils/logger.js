@@ -35,8 +35,8 @@ export const logSystemActivity = async ({
 
     return systemLog;
   } catch (error) {
-    console.error('Error logging system activity:', error);
-    // Don't throw the error to prevent disrupting the main application flow
+    console.error("Error logging system activity:");
+    // console.error("Error logging system activity:", error);
     return null;
   }
 };

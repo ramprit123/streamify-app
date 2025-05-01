@@ -59,8 +59,8 @@ export const registerUser = async (req, res) => {
         avatar: user.avatar,
       });
       console.log(`Stream user created for ${user._id}`);
-    } catch (error) {
-      console.log("Error creating Stream user:", error);
+    } catch (StreamError) {
+      console.log("Error creating Stream user:", StreamError.message);
     }
 
     if (user) {
@@ -92,13 +92,15 @@ export const registerUser = async (req, res) => {
         req,
       });
 
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-      });
+      res.success(
+        {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+        201
+      );
     }
   } catch (error) {
     res.status(400);
@@ -121,13 +123,13 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       res.status(401);
-      throw new Error("Invalid email or password");
+      res.error("Invalid email or password", 401);
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       res.status(401);
-      throw new Error("Invalid email or password");
+      res.error("Invalid email or password", 401);
     }
 
     const accessToken = generateAccessToken(user._id);
@@ -167,7 +169,7 @@ export const loginUser = async (req, res) => {
     });
   } catch (error) {
     res.status(401);
-    throw new Error(error.message);
+    res.error(error.message, 401);
   }
 };
 
@@ -179,7 +181,7 @@ export const getUserProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) {
       res.status(404);
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     res.json({
@@ -191,7 +193,7 @@ export const getUserProfile = async (req, res) => {
     });
   } catch (error) {
     res.status(404);
-    throw new Error(error.message);
+    res.error(error.message, 404);
   }
 };
 

@@ -44,12 +44,8 @@ export const sendOTP = async (req, res) => {
   try {
     const { phoneNumber, name } = req.body;
     
-    if (!phoneNumber) {
-      return res.status(400).json({ message: "Phone number is required" });
-    }
-
-    if (!name) {
-      return res.status(400).json({ message: "Name is required" });
+    if (!phoneNumber || !name) {
+      return res.error("Phone number and name are required");
     }
 
     // Check if phone number already verified for another user
@@ -59,9 +55,7 @@ export const sendOTP = async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({
-        message: "Phone number already registered",
-      });
+      return res.error("Phone number already registered");
     }
 
     // Generate OTP
@@ -93,15 +87,15 @@ export const sendOTP = async (req, res) => {
       await user.save();
     }
 
-    res.status(200).json({
-      message: "OTP sent successfully",
-      expiresIn: "10 minutes",
-    });
+    res.success(
+      {
+        expiresIn: "10 minutes",
+      },
+      "OTP sent successfully"
+    );
   } catch (error) {
-    res.status(500).json({
-      message: "Error sending OTP",
-      error: error.message,
-    });
+    console.error("Error sending OTP:", error);
+    res.error("Failed to send OTP. Please try again later.", 500);
   }
 };
 
@@ -113,9 +107,7 @@ export const verifyOTP = async (req, res) => {
     const { phoneNumber, otp } = req.body;
 
     if (!phoneNumber || !otp) {
-      return res.status(400).json({
-        message: "Phone number and OTP are required",
-      });
+      return res.error("Phone number and OTP are required");
     }
 
     // Find user with phone and valid OTP
@@ -126,9 +118,7 @@ export const verifyOTP = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({
-        message: "Invalid or expired OTP",
-      });
+      return res.error("Invalid or expired OTP");
     }
 
     // Mark phone as verified
@@ -164,18 +154,19 @@ export const verifyOTP = async (req, res) => {
       req,
     });
 
-    res.status(200).json({
-      _id: user._id,
-      phoneNumber: user.phoneNumber,
-      phoneVerified: user.phoneVerified,
-      name: user.name || undefined,
-      email: user.email || undefined,
-      role: user.role,
-    });
+    res.success(
+      {
+        _id: user._id,
+        phoneNumber: user.phoneNumber,
+        phoneVerified: user.phoneVerified,
+        name: user.name || undefined,
+        email: user.email || undefined,
+        role: user.role,
+      },
+      "Phone number verified successfully"
+    );
   } catch (error) {
-    res.status(500).json({
-      message: "Error verifying OTP",
-      error: error.message,
-    });
+    console.error("Error verifying OTP:", error);
+    res.error("Failed to verify OTP. Please try again later.", 500);
   }
 };
