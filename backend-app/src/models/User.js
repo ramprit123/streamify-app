@@ -3,14 +3,6 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: function () {
-        return !this.phoneNumber;
-      },
-      trim: true,
-      maxLength: [50, "Name cannot be more than 50 characters"],
-    },
     email: {
       type: String,
       required: function () {
@@ -61,6 +53,12 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     phoneVerificationExpire: Date,
+    friends: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,

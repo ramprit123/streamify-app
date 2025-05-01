@@ -2,27 +2,28 @@ import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/User.js';
 import { logSystemActivity } from "../utils/logger.js";
+import { upsertStreamUser } from "../config/stream.js";
 
 // Generate Access Token
 const generateAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '15m', // shorter expiry for access token
+    expiresIn: "15m", // shorter expiry for access token
   });
 };
 
 // Generate Refresh Token
 const generateRefreshToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: '7d',
+    expiresIn: "7d",
   });
 };
 
 // Set Cookie Options
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 // @desc    Register a new user
@@ -36,18 +37,31 @@ export const registerUser = async (req, res) => {
     }
 
     const { name, email, password } = req.body;
+    const idx = Math.floor(Math.random() * 100) + 1; // generate a num between 1-100
+    const randomAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
       res.status(400);
-      throw new Error('User already exists');
+      throw new Error("User already exists");
     }
 
     const user = await User.create({
       name,
       email,
       password,
+      avatar: randomAvatar,
     });
+
+    try {
+      await upsertStreamUser({
+        id: user._id.toString(),
+        avatar: user.avatar,
+      });
+      console.log(`Stream user created for ${user._id}`);
+    } catch (error) {
+      console.log("Error creating Stream user:", error);
+    }
 
     if (user) {
       const accessToken = generateAccessToken(user._id);
