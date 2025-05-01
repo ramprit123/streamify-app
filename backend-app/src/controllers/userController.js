@@ -204,3 +204,4 @@ const generateToken = (id) => {
     expiresIn: '30d',
   });
 };
+
