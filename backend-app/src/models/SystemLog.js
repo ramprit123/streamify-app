@@ -4,19 +4,27 @@ const systemLogSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     action: {
       type: String,
       required: true,
-      enum: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'REGISTER'],
+      enum: [
+        "CREATE",
+        "UPDATE",
+        "DELETE",
+        "LOGIN",
+        "LOGOUT",
+        "REGISTER",
+        "VERIFY_PHONE",
+      ],
     },
     entityType: {
       type: String,
       required: true,
       // Add more entity types as needed
-      enum: ['User', 'Profile', 'Settings'],
+      enum: ["User", "Profile", "Settings"],
     },
     entityId: {
       type: mongoose.Schema.Types.ObjectId,

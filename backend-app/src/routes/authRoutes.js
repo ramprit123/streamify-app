@@ -9,16 +9,21 @@ import {
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import {
-    loginValidation,
-    registerValidation,
-    updateProfileValidation,
-} from '../middleware/validationMiddleware.js';
+  loginValidation,
+  mobileValidation,
+  registerValidation,
+  updateProfileValidation,
+  verifyOtpValidation,
+} from "../middleware/validationMiddleware.js";
+import { sendOTP, verifyOTP } from "../controllers/mobileAuthController.js";
 
 const router = express.Router();
 
 // Public routes
-router.post('/register', registerValidation, registerUser);
-router.post('/login', loginValidation, loginUser);
+router.post("/register", registerValidation, registerUser);
+router.post("/login", loginValidation, loginUser);
+router.post("/mobile/send-otp", mobileValidation, sendOTP);
+router.post("/mobile/verify-otp", verifyOtpValidation, verifyOTP);
 
 // Token management routes
 router.post('/refresh-token', refreshToken);

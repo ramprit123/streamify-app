@@ -16,16 +16,16 @@ export const emitSystemEvent = (eventType, payload) => {
 };
 
 // Event listeners
-systemEvents.on(EVENT_TYPES.USER_ACTION, (payload) => {
-  console.log('User action event:', payload);
-});
+// systemEvents.on(EVENT_TYPES.USER_ACTION, (payload) => {
+//   console.log("User action event:");
+// });
 
-systemEvents.on(EVENT_TYPES.SYSTEM_ACTION, (payload) => {
-  console.log('System action event:', payload);
-});
+// systemEvents.on(EVENT_TYPES.SYSTEM_ACTION, (payload) => {
+//   console.log("System action event:");
+// });
 
-systemEvents.on(EVENT_TYPES.ERROR, (payload) => {
-  console.error('Error event:', payload);
-});
+// systemEvents.on(EVENT_TYPES.ERROR, (payload) => {
+//   console.error("Error event:");
+// });
 
 export default systemEvents;
