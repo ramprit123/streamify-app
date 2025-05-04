@@ -354,3 +354,67 @@ export const sendFriendRequest = async (req, res) => {
     res.error("An error occurred while processing your request", 500);
   }
 };
+
+export const acceptFriendRequest = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id: requestId } = req.params;
+    // Validate request parameters
+    if (!userId || !requestId) {
+      return res.error("Invalid request - missing required parameters", 400);
+    }
+    // Find friend request
+    const request = await FriendRequest.findById(requestId);
+    if (!request) {
+      return res.error("Friend request not found", 404);
+    }
+    // Check if request is pending
+    if (request.status !== "pending") {
+      return res.error("Friend request is not pending", 400);
+    }
+    // Check if request recipient is the current user
+    if (request.recipient.toString() !== userId.toString()) {
+      return res.error("You are not the recipient of this friend request", 403);
+    }
+    // Update request status to accepted
+    request.status = "accepted";
+    await request.save();
+    // Add users to each other's friend lists
+    const sender = await User.findById(request.sender);
+    const recipient = await User.findById(request.recipient);
+    sender.friends.push(recipient._id);
+    recipient.friends.push(sender._id);
+    await sender.save();
+    await recipient.save();
+    // Log the friend request acceptance
+    await logSystemActivity({
+      user: recipient,
+      action: "FRIEND_REQUEST_ACCEPTED",
+      entityType: "FriendRequest",
+      entityId: request._id,
+      currentState: {
+        sender: request.sender,
+        recipient: request.recipient,
+        status: "accepted",
+      },
+      req,
+    });
+    res.success({
+      message: "Friend request accepted successfully",
+      request,
+    });
+  } catch (error) {
+    console.error("Error in acceptFriendRequest:", error);
+    res.error("An error occurred while processing your request", 500);
+  }
+};
+export const getUsers = async (req, res) => {
+  try {
+    const { skip, limit } = req.pagination;
+    const users = await User.find().skip(skip).limit(limit);
+    const totalUsers = await User.countDocuments();
+    res.success(res.paginate(users, totalUsers));
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
