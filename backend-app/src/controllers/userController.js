@@ -1,8 +1,8 @@
-import User from '../models/User.js';
-import { logSystemActivity } from '../utils/logger.js';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import jwt from "jsonwebtoken";
+import FriendRequest from "../models/friendRequest.js";
 import Onboarding from "../models/Onboard.js";
+import User from "../models/User.js";
+import { logSystemActivity } from "../utils/logger.js";
 
 // @desc    Register new user
 // @route   POST /api/users/register
@@ -217,7 +217,6 @@ export const recommendedFriends = async (req, res) => {
     const onboardedUserIds = await Onboarding.find({
       isOnboarded: true,
     }).distinct("user");
-
     const recommendedUsers = await User.find({
       $and: [
         { _id: { $ne: req.user._id } },
@@ -229,5 +228,129 @@ export const recommendedFriends = async (req, res) => {
     res.success(recommendedUsers, 200);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const myFriends = async (req, res) => {
+  try {
+    // Find user and populate friends in one query
+    const user = await User.findById(req.user._id).populate({
+      path: "friends",
+      select: "name email avatar role", // Only select needed fields
+    });
+
+    if (!user) {
+      return res.error("User not found", 404);
+    }
+
+    // Log the friends fetch activity
+    await logSystemActivity({
+      user,
+      action: "FETCH_FRIENDS",
+      entityType: "User",
+      entityId: user._id,
+      currentState: { friendsCount: user.friends.length },
+      req,
+    });
+
+    // Add pagination support
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    const paginatedFriends = user.friends.slice(startIndex, endIndex);
+
+    res.success(
+      {
+        friends: paginatedFriends,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(user.friends.length / limit),
+          totalFriends: user.friends.length,
+        },
+      },
+      200
+    );
+  } catch (error) {
+    console.error("Error in myFriends:", error);
+    res.status(500).json({
+      message: "Failed to fetch friends",
+      error: error.message,
+    });
+  }
+};
+export const sendFriendRequest = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id: recipientId } = req.params;
+
+    // Validate request parameters
+    if (!userId || !recipientId) {
+      return res.error("Invalid request - missing required parameters", 400);
+    }
+
+    // Validate user is not sending request to themselves
+    if (userId.toString() === recipientId) {
+      return res.error("You cannot send a friend request to yourself", 400);
+    }
+
+    // Check if recipient exists
+    const recipient = await User.findById(recipientId);
+    if (!recipient) {
+      return res.error("Recipient user not found", 404);
+    }
+
+    // Check if request already exists
+    const existingRequest = await FriendRequest.findOne({
+      sender: userId,
+      recipient: recipientId,
+      status: { $in: ["pending", "accepted"] },
+    });
+
+    if (existingRequest) {
+      return res.error(
+        "A friend request already exists or you are already friends",
+        400
+      );
+    }
+
+    // Check if users are already friends
+    const sender = await User.findById(userId);
+    if (sender.friends.includes(recipientId)) {
+      return res.error("You are already friends with this user", 400);
+    }
+
+    // Create new friend request
+    const request = await FriendRequest.create({
+      sender: userId,
+      recipient: recipientId,
+      status: "pending",
+    });
+
+    // Log the friend request
+    await logSystemActivity({
+      user: sender,
+      action: "FRIEND_REQUEST_SENT",
+      entityType: "FriendRequest",
+      entityId: request._id,
+      currentState: {
+        sender: userId,
+        recipient: recipientId,
+        status: "pending",
+      },
+      req,
+    });
+
+    res.success(
+      {
+        message: "Friend request sent successfully",
+        request,
+      },
+      201
+    );
+  } catch (error) {
+    console.error("Error in sendFriendRequest:", error);
+    res.error("An error occurred while processing your request", 500);
   }
 };
