@@ -15,6 +15,7 @@ import {
 import authRoutes from "./routes/authRoutes.js";
 import systemLogRoutes from "./routes/systemLogRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import onBoardingRoutes from "./routes/onboardingRoutes.js";
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.get("/", (req, res) => {
 app.use("/api/system", systemLogRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/onboarding", onBoardingRoutes);
 
 // Error Handling Middleware
 app.use(notFound);

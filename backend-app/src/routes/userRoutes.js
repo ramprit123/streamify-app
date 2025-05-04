@@ -5,19 +5,23 @@ import {
   getUserProfile,
   updateUserProfile,
   deleteUser,
-} from '../controllers/userController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+  recommendedFriends,
+} from "../controllers/userController.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Public routes
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+router.post("/register", registerUser);
+router.post("/login", loginUser);
 
 // Protected routes
-router.route('/profile')
+router
+  .route("/profile")
   .get(protect, getUserProfile)
   .put(protect, updateUserProfile);
+
+router.get("/recommended-friends", protect, recommendedFriends);
 
 // Admin routes
 router.delete('/:id', protect, admin, deleteUser);

@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import { logSystemActivity } from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import Onboarding from "../models/Onboard.js";
 
 // @desc    Register new user
 // @route   POST /api/users/register
@@ -13,7 +14,7 @@ export const registerUser = async (req, res) => {
     // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: "User already exists" });
     }
 
     // Create user
@@ -27,8 +28,8 @@ export const registerUser = async (req, res) => {
       // Log the registration
       await logSystemActivity({
         user,
-        action: 'REGISTER',
-        entityType: 'User',
+        action: "REGISTER",
+        entityType: "User",
         entityId: user._id,
         currentState: { name: user.name, email: user.email },
         req,
@@ -43,7 +44,7 @@ export const registerUser = async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -55,22 +56,22 @@ export const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Check password
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Log the login
     await logSystemActivity({
       user,
-      action: 'LOGIN',
-      entityType: 'User',
+      action: "LOGIN",
+      entityType: "User",
       entityId: user._id,
       currentState: { lastLogin: new Date() },
       req,
@@ -84,7 +85,7 @@ export const loginUser = async (req, res) => {
       token: generateToken(user._id),
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -95,7 +96,7 @@ export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     res.json({
@@ -106,7 +107,7 @@ export const getUserProfile = async (req, res) => {
       avatar: user.avatar,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -117,7 +118,7 @@ export const updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const previousState = {
@@ -139,8 +140,8 @@ export const updateUserProfile = async (req, res) => {
     // Log the update
     await logSystemActivity({
       user: updatedUser,
-      action: 'UPDATE',
-      entityType: 'User',
+      action: "UPDATE",
+      entityType: "User",
       entityId: updatedUser._id,
       previousState,
       currentState: {
@@ -160,7 +161,7 @@ export const updateUserProfile = async (req, res) => {
       token: generateToken(updatedUser._id),
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -171,7 +172,7 @@ export const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const previousState = {
@@ -185,23 +186,48 @@ export const deleteUser = async (req, res) => {
     // Log the deletion
     await logSystemActivity({
       user: req.user, // Admin who performed the deletion
-      action: 'DELETE',
-      entityType: 'User',
+      action: "DELETE",
+      entityType: "User",
       entityId: user._id,
       previousState,
       req,
     });
 
-    res.json({ message: 'User removed' });
+    res.json({ message: "User removed" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: "30d",
   });
 };
 
+export const recommendedFriends = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.error("User not found", 404);
+    }
+
+    // Get onboarded users
+    const onboardedUserIds = await Onboarding.find({
+      isOnboarded: true,
+    }).distinct("user");
+
+    const recommendedUsers = await User.find({
+      $and: [
+        { _id: { $ne: req.user._id } },
+        { _id: { $nin: user.friends } },
+        { _id: { $in: onboardedUserIds } },
+      ],
+    });
+
+    res.success(recommendedUsers, 200);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

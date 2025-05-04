@@ -24,7 +24,7 @@ const systemLogSchema = new mongoose.Schema(
       type: String,
       required: true,
       // Add more entity types as needed
-      enum: ["User", "Profile", "Settings"],
+      enum: ["User", "Profile", "Settings", "Onboarding"],
     },
     entityId: {
       type: mongoose.Schema.Types.ObjectId,
